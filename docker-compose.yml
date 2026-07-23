@@ -1,15 +1,13 @@
 services:
   spive2d-web:
-    # 使用 GitHub Container Registry 预构建镜像，无需本地编译
     image: ghcr.io/1098542053/spive2d-web:latest
     container_name: spive2d-web
     restart: unless-stopped
     ports:
       - "8080:3000"
     volumes:
-      # 挂载你的模型目录（修改为NAS上存放 Live2D/Spine 模型的实际路径）
-      - /vol1/1000/你的模型文件夹:/data/models
-      # 持久化用户数据（注册信息不会丢失）
+      # 模型目录：在 Docker UI 中将你的模型文件夹挂载到 /data/models
+      # 用户数据：注册信息等持久化存储
       - spive2d-data:/data
     environment:
       - MODELS_ROOT=/data/models
