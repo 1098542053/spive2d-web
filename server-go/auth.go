@@ -211,10 +211,6 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	})
 
-	roleLabel := role
-	if isFirst {
-		roleLabel = "admin (管理员)"
-	}
 	jsonResp(w, map[string]interface{}{
 		"user":    user.User,
 		"message": "注册成功，欢迎 " + nickname + "！" + map[bool]string{true: " 你已自动成为管理员", false: ""}[isFirst],
