@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -55,10 +56,12 @@ func loadUsers() {
 
 	data, err := os.ReadFile(usersFilePath)
 	if err != nil {
-		return // no saved users yet
+		log.Printf("loadUsers: no users file yet (%v)", err)
+		return
 	}
 	var list []StoredUser
 	if err := json.Unmarshal(data, &list); err != nil {
+		log.Printf("loadUsers: failed to parse users file (%v)", err)
 		return
 	}
 	usersMu.Lock()

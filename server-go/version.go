@@ -33,8 +33,9 @@ func handleVersion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	shortVersion := versionShort()
 	info := VersionInfo{
-		Version:   buildVersion,
+		Version:   shortVersion,
 		BuildTime: buildTime,
 		CheckedAt: time.Now().UTC().Format(time.RFC3339),
 	}
@@ -42,7 +43,7 @@ func handleVersion(w http.ResponseWriter, r *http.Request) {
 	// Try to check for updates from GitHub (non-blocking, fail gracefully)
 	if buildVersion != "dev" {
 		latest, err := fetchLatestVersion()
-		if err == nil && latest != "" && latest != buildVersion {
+		if err == nil && latest != "" && latest != versionCompareKey() {
 			info.UpdateAvailable = true
 			info.LatestVersion = latest
 		}
@@ -58,9 +59,10 @@ func handleCheckUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	shortVersion := versionShort()
 	latest, err := fetchLatestVersion()
 	result := map[string]interface{}{
-		"currentVersion":  buildVersion,
+		"currentVersion":  shortVersion,
 		"updateAvailable": false,
 		"checkedAt":       time.Now().UTC().Format(time.RFC3339),
 	}
@@ -69,7 +71,7 @@ func handleCheckUpdate(w http.ResponseWriter, r *http.Request) {
 		result["error"] = err.Error()
 	} else {
 		result["latestVersion"] = latest
-		if buildVersion != "dev" && latest != "" && latest != buildVersion {
+		if buildVersion != "dev" && latest != "" && latest != versionCompareKey() {
 			result["updateAvailable"] = true
 		}
 	}
@@ -118,14 +120,37 @@ func fetchLatestVersion() (string, error) {
 	return sha, nil
 }
 
-// versionShort returns a human-readable version string
+// versionCompareKey returns the raw version identifier used for update comparison.
+// For SHA versions, it returns just the first 7 characters (matching GitHub API).
+func versionCompareKey() string {
+	if buildVersion == "dev" {
+		return "dev"
+	}
+	if len(buildVersion) == 40 {
+		return buildVersion[:7]
+	}
+	return buildVersion
+}
+
+// versionShort returns a short human-readable version string.
+// For SHA versions, it returns the first 7 characters.
 func versionShort() string {
 	if buildVersion == "dev" {
 		return "dev"
 	}
+	// If it looks like a full SHA (40 hex chars), truncate to 7
+	if len(buildVersion) == 40 {
+		sha := buildVersion[:7]
+		parts := []string{sha}
+		if t, err := time.Parse(time.RFC3339, buildTime); err == nil {
+			parts = append(parts, t.Format("2006-01-02"))
+		} else if buildTime != "unknown" {
+			parts = append(parts, buildTime)
+		}
+		return strings.Join(parts, " ")
+	}
 	parts := []string{buildVersion}
 	if buildTime != "unknown" {
-		// Try to parse and reformat build time
 		if t, err := time.Parse(time.RFC3339, buildTime); err == nil {
 			parts = append(parts, t.Format("2006-01-02"))
 		} else {
