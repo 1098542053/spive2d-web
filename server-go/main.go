@@ -64,7 +64,7 @@ func main() {
 		switch r.Method {
 		case http.MethodGet:
 			handleGetSettings(w, r)
-		case http.MethodPut:
+		case http.MethodPut, http.MethodPost:
 			handleUpdateSettings(w, r)
 		default:
 			jsonError(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -127,19 +127,26 @@ func handleFiles(w http.ResponseWriter, r *http.Request) {
 	}
 	type FileEntry struct {
 		Name  string `json:"name"`
+		Path  string `json:"path"`
 		Size  int64  `json:"size"`
 		IsDir bool   `json:"isDir"`
 	}
-	var files []FileEntry
+	var files = make([]FileEntry, 0)
 	for _, e := range entries {
 		fi, _ := e.Info()
+		childPath := inputPath
+		if !strings.HasSuffix(childPath, "/") && !strings.HasSuffix(childPath, "\\") {
+			childPath += "/"
+		}
+		childPath += e.Name()
 		files = append(files, FileEntry{
 			Name:  e.Name(),
+			Path:  childPath,
 			Size:  fi.Size(),
 			IsDir: e.IsDir(),
 		})
 	}
-	jsonResp(w, map[string]interface{}{"files": files})
+	jsonResp(w, map[string]interface{}{"items": files, "entries": files, "files": files})
 }
 
 // --- API: GET /api/file?path=... ---

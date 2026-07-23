@@ -182,9 +182,9 @@ func handleGetSettings(w http.ResponseWriter, r *http.Request) {
 	jsonResp(w, cfg)
 }
 
-// handleUpdateSettings handles PUT /api/settings
+// handleUpdateSettings handles PUT/POST /api/settings
 func handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
+	if r.Method != http.MethodPut && r.Method != http.MethodPost {
 		jsonError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -221,6 +221,14 @@ func handleDiagnose(w http.ResponseWriter, r *http.Request) {
 	buildDirCheck := checkDir(buildDir)
 	dataDirCheck := checkDir(dataDir)
 
+	// Check if buildDir has index.html
+	buildDirHasIndex := false
+	if buildDirCheck.Exists && buildDirCheck.IsDir {
+		if _, err := os.Stat(filepath.Join(buildDir, "index.html")); err == nil {
+			buildDirHasIndex = true
+		}
+	}
+
 	// Count models
 	modelsCount := 0
 	if modelsRootCheck.Exists {
@@ -236,6 +244,15 @@ func handleDiagnose(w http.ResponseWriter, r *http.Request) {
 
 	libsCheck := collectLibChecks()
 
+	// Convert libsCheck array to runtimeFiles object (frontend expects this format)
+	runtimeFiles := make(map[string]map[string]interface{})
+	for _, lc := range libsCheck {
+		runtimeFiles[lc.Name] = map[string]interface{}{
+			"exists": lc.Exists,
+			"size":   lc.Size,
+		}
+	}
+
 	// Determine overall status
 	status := "ok"
 	if !modelsRootCheck.Exists || !modelsRootCheck.Readable {
@@ -246,17 +263,25 @@ func handleDiagnose(w http.ResponseWriter, r *http.Request) {
 
 	uptime := time.Since(startTime).Round(time.Second).String()
 
-	diag := SystemDiagnosis{
-		Status:      status,
-		ModelsRoot:  modelsRootCheck,
-		BuildDir:    buildDirCheck,
-		DataDir:     dataDirCheck,
-		ModelsCount: modelsCount,
-		LibsCheck:   libsCheck,
-		Uptime:      uptime,
-	}
-
-	jsonResp(w, diag)
+	// Return flat fields matching frontend expectations
+	jsonResp(w, map[string]interface{}{
+		"status":                 status,
+		"modelsRoot":             modelsRootCheck.Path,
+		"modelsRootExists":       modelsRootCheck.Exists,
+		"modelsRootReadable":     modelsRootCheck.Readable,
+		"modelsRootWritable":     modelsRootCheck.Writable,
+		"modelsRootIsDir":        modelsRootCheck.IsDir,
+		"buildDir":               buildDirCheck.Path,
+		"buildDirExists":         buildDirCheck.Exists,
+		"buildDirHasIndex":       buildDirHasIndex,
+		"dataDir":                dataDirCheck.Path,
+		"dataDirExists":          dataDirCheck.Exists,
+		"dataDirWritable":        dataDirCheck.Writable,
+		"modelCount":             modelsCount,
+		"runtimeFiles":           runtimeFiles,
+		"modelsCount":            modelsCount,
+		"uptime":                 uptime,
+	})
 }
 
 // handleRescan handles POST /api/rescan - triggers model scan logic
