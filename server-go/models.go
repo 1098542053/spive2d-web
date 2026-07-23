@@ -24,7 +24,8 @@ func handleModels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	modelsRoot := getEnv("MODELS_ROOT", "/data/models")
+	cfg := loadConfig()
+	modelsRoot := cfg.ModelsRoot
 	info, err := os.Stat(modelsRoot)
 	if err != nil || !info.IsDir() {
 		jsonResp(w, map[string]interface{}{"models": []ModelInfo{}})
@@ -32,7 +33,7 @@ func handleModels(w http.ResponseWriter, r *http.Request) {
 	}
 
 	entries, _ := os.ReadDir(modelsRoot)
-	var models []ModelInfo
+	var models = make([]ModelInfo, 0)
 	thumbDir := filepath.Join(modelsRoot, ".thumbs")
 	os.MkdirAll(thumbDir, 0755)
 
@@ -73,7 +74,8 @@ func handleThumbnail(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	modelsRoot := getEnv("MODELS_ROOT", "/data/models")
+	cfg := loadConfig()
+	modelsRoot := cfg.ModelsRoot
 	thumbPath := filepath.Join(modelsRoot, ".thumbs", name+".png")
 	if _, err := os.Stat(thumbPath); err == nil {
 		w.Header().Set("Content-Type", "image/png")
