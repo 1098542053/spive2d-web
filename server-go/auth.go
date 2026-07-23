@@ -233,8 +233,9 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
+		Username   string `json:"username"`
+		Password   string `json:"password"`
+		RememberMe bool   `json:"rememberMe"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		jsonError(w, "Invalid request", http.StatusBadRequest)
@@ -252,12 +253,20 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Session duration: 30 days if rememberMe, otherwise 24 hours
+	sessionDuration := 24 * time.Hour
+	cookieMaxAge := 86400
+	if body.RememberMe {
+		sessionDuration = 30 * 24 * time.Hour
+		cookieMaxAge = 30 * 86400
+	}
+
 	token := generateToken()
 	sessionsMu.Lock()
 	sessions[token] = Session{
 		Token:     token,
 		UserID:    key,
-		ExpiresAt: time.Now().Add(24 * time.Hour),
+		ExpiresAt: time.Now().Add(sessionDuration),
 	}
 	sessionsMu.Unlock()
 
@@ -265,7 +274,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		Name:     "session",
 		Value:    token,
 		Path:     "/",
-		MaxAge:   86400,
+		MaxAge:   cookieMaxAge,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})
