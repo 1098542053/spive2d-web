@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -99,7 +98,6 @@ func detectModelType(dirPath string) (string, int) {
 	}
 
 	hasMoc3 := false
-	hasModel3 := false
 	hasAtlas := false
 	hasSkel := false
 	hasSpineJSON := false
@@ -110,9 +108,6 @@ func detectModelType(dirPath string) (string, int) {
 		if strings.HasSuffix(name, ".moc3") {
 			hasMoc3 = true
 			count++
-		}
-		if strings.HasSuffix(name, ".model3.json") {
-			hasModel3 = true
 		}
 		if strings.Contains(name, ".atlas") && !strings.HasSuffix(name, ".png") {
 			hasAtlas = true
