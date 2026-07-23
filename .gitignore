@@ -1,7 +1,18 @@
-﻿# spive2d-web .gitignore - 只忽略不需要的文件
+# spive2d-web .gitignore - 只忽略不需要的文件
 *.exe
 *.bak
 *.log
 .DS_Store
 Thumbs.db
 node_modules/
+
+# Go build output
+server-go/server
+
+# Duplicate frontend build in server-go
+server-go/build/
+
+# Test data and scripts
+server-go/test_*/
+server-go/test_*.py
+test-data/
