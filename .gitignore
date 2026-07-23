@@ -1,0 +1,7 @@
+﻿# spive2d-web .gitignore - 只忽略不需要的文件
+*.exe
+*.bak
+*.log
+.DS_Store
+Thumbs.db
+node_modules/

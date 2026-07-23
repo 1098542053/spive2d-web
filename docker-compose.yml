@@ -1,0 +1,17 @@
+services:
+  spive2d-web:
+    image: spive2d-web:latest
+    build:
+      context: .
+      dockerfile: server-go/Dockerfile
+    container_name: spive2d-web
+    restart: unless-stopped
+    ports:
+      - "8080:3000"
+    volumes:
+      # 挂载你的模型目录（修改为NAS上的实际路径）
+      - /vol1/1000/你的模型文件夹:/data/models
+    environment:
+      - MODELS_ROOT=/data/models
+      - PORT=3000
+      - TZ=Asia/Shanghai
