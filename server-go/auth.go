@@ -61,6 +61,8 @@ func loadUsers() {
 	if err := json.Unmarshal(data, &list); err != nil {
 		return
 	}
+	usersMu.Lock()
+	defer usersMu.Unlock()
 	for _, u := range list {
 		storedUsers[strings.ToLower(u.Username)] = u
 		id := 0
@@ -68,17 +70,15 @@ func loadUsers() {
 			nextUserID = id + 1
 		}
 	}
-	usersMu.Lock()
-	usersMu.Unlock()
 }
 
-func saveUsers() {
-	storedUsersMu.RLock()
+// saveUsersLocked saves users to disk.
+// The caller MUST already hold at least a read lock on storedUsersMu.
+func saveUsersLocked() {
 	list := make([]StoredUser, 0, len(storedUsers))
 	for _, u := range storedUsers {
 		list = append(list, u)
 	}
-	storedUsersMu.RUnlock()
 
 	sort.Slice(list, func(i, j int) bool {
 		return list[i].ID < list[j].ID
@@ -87,6 +87,12 @@ func saveUsers() {
 	data, _ := json.MarshalIndent(list, "", "  ")
 	os.MkdirAll(filepath.Dir(usersFilePath), 0755)
 	os.WriteFile(usersFilePath, data, 0644)
+}
+
+func saveUsers() {
+	storedUsersMu.RLock()
+	defer storedUsersMu.RUnlock()
+	saveUsersLocked()
 }
 
 func needsSetup() bool {
@@ -190,7 +196,7 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 		Password: body.Password,
 	}
 	storedUsers[key] = user
-	saveUsers()
+	saveUsersLocked() // already holding storedUsersMu write lock
 
 	// Auto-login after register
 	token := generateToken()
