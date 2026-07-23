@@ -73,6 +73,10 @@ func main() {
 	mux.HandleFunc("/api/diagnose", handleDiagnose)
 	mux.HandleFunc("/api/rescan", handleRescan)
 
+	// Version & update routes
+	mux.HandleFunc("/api/version", handleVersion)
+	mux.HandleFunc("/api/check-update", handleCheckUpdate)
+
 	// Static files: serve /lib/* and /_app/* etc. from build/
 	fileServer := http.FileServer(http.Dir(buildDir))
 	mux.Handle("/lib/", fileServer)
